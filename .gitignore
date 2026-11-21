@@ -1,0 +1,25 @@
+# Secrets & environment
+.env
+
+# Generated data & databases
+data/
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+
+# Local caches
+.cache/
+*.log

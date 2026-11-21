@@ -1,0 +1,85 @@
+# EVE Fitting Advisor - Optimization Profiles
+#
+# Allowed meta groups: Tech I, Meta, Tech II, Storyline, Faction, Deadspace, Officer
+# Note: Items with unknown market prices (None) are automatically excluded whenever
+# budget_cap_isk is set.
+
+profiles:
+  bling:
+    name: Bling
+    description: "No budget cap; all meta groups allowed; maximise combat output and tank."
+    allowed_meta_groups:
+      - Tech I
+      - Meta
+      - Tech II
+      - Storyline
+      - Faction
+      - Deadspace
+      - Officer
+    budget_cap_isk: null
+    banned_modules: []
+    weights:
+      dps: 1.5
+      ehp: 1.2
+      tank: 1.0
+      speed: 0.6
+      cap: 0.6
+      cost: 0.0
+
+  cheap_fw:
+    name: Cheap FW
+    description: "Low-cost Faction Warfare skirmish fit with strict ISK cap."
+    # VERIFY: user to confirm against current game rules (FW plex hull-size & meta restrictions vary by plex tier: Scout/Small/Medium/Large/Open, NVY vs ADV)
+    notes: "Intended for expendable FW plex hulls; excludes faction/deadspace/officer modules."
+    allowed_meta_groups:
+      - Tech I
+      - Meta
+      - Tech II
+    # VERIFY: user to confirm against current game rules (typical cheap FW frigate/destroyer budget target)
+    budget_cap_isk: 25000000
+    banned_modules: []
+    weights:
+      dps: 1.2
+      ehp: 1.0
+      tank: 0.6
+      speed: 1.1
+      cap: 0.4
+      cost: -1.0
+
+  pve:
+    name: PvE
+    description: "Sustained DPS, capacitor stability, and active/passive tank prioritised."
+    allowed_meta_groups:
+      - Tech I
+      - Meta
+      - Tech II
+      - Storyline
+      - Faction
+      - Deadspace
+    budget_cap_isk: 500000000
+    banned_modules: []
+    weights:
+      dps: 1.3
+      ehp: 0.8
+      tank: 1.5
+      speed: 0.3
+      cap: 1.6
+      cost: -0.2
+
+  budget_pvp:
+    name: Budget PvP
+    description: "Value-for-money PvP fit balancing combat stats against ISK cost."
+    allowed_meta_groups:
+      - Tech I
+      - Meta
+      - Tech II
+      - Faction
+    budget_cap_isk: 100000000
+    banned_modules: []
+    weights:
+      dps: 1.2
+      ehp: 1.1
+      tank: 0.7
+      speed: 1.0
+      cap: 0.5
+      cost: -0.8
