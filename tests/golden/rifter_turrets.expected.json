@@ -1,21 +1,21 @@
 {
-  "status": "awaiting_user_values",
+  "status": "verified",
   "skills": "all5",
   "pyfa_version": "2.70.0",
   "stats": {
-    "dps_total": null,
-    "volley_total": null,
-    "ehp_total": null,
-    "ehp_shield": null,
-    "ehp_armor": null,
-    "ehp_hull": null,
-    "cpu_used": null,
-    "pg_used": null,
-    "calibration_used": null,
-    "max_speed": null,
-    "align_time": null,
-    "cap_stable": null,
+    "dps_total": 153,
+    "volley_total": 210,
+    "ehp_total": 3370,
+    "ehp_shield": 887,
+    "ehp_armor": 1400,
+    "ehp_hull": 1090,
+    "cpu_used": 145.5,
+    "pg_used": 30.7,
+    "calibration_used": 300,
+    "max_speed": 3213,
+    "align_time": 4.93,
+    "cap_stable": false,
     "cap_stable_pct": null,
-    "cap_duration_s": null
+    "cap_duration_s": 22
   }
 }

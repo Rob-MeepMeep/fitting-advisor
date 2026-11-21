@@ -1,21 +1,13 @@
 {
-  "status": "awaiting_user_values",
+  "status": "verified",
   "skills": "all5",
   "pyfa_version": "2.70.0",
-  "stats": {
-    "dps_total": null,
-    "volley_total": null,
-    "ehp_total": null,
-    "ehp_shield": null,
-    "ehp_armor": null,
-    "ehp_hull": null,
-    "cpu_used": null,
-    "pg_used": null,
-    "calibration_used": null,
-    "max_speed": null,
-    "align_time": null,
-    "cap_stable": null,
-    "cap_stable_pct": null,
-    "cap_duration_s": null
-  }
+  "expected_valid": false,
+  "expected_issue_codes": [
+    "cpu_exceeded",
+    "pg_exceeded",
+    "rig_size_mismatch",
+    "max_group_fitted_exceeded",
+    "invalid_charge"
+  ]
 }

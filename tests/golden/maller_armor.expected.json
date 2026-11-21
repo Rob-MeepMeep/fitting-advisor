@@ -1,21 +1,22 @@
 {
-  "status": "awaiting_user_values",
+  "status": "verified",
   "skills": "all5",
   "pyfa_version": "2.70.0",
+  "drones_active": false,
   "stats": {
-    "dps_total": null,
-    "volley_total": null,
-    "ehp_total": null,
-    "ehp_shield": null,
-    "ehp_armor": null,
-    "ehp_hull": null,
-    "cpu_used": null,
-    "pg_used": null,
-    "calibration_used": null,
-    "max_speed": null,
-    "align_time": null,
-    "cap_stable": null,
+    "dps_total": 220,
+    "volley_total": 574,
+    "ehp_total": 59800,
+    "ehp_shield": 1970,
+    "ehp_armor": 52600,
+    "ehp_hull": 5290,
+    "cpu_used": 371.8,
+    "pg_used": 1115,
+    "calibration_used": 150,
+    "max_speed": 554,
+    "align_time": 10.1,
+    "cap_stable": false,
     "cap_stable_pct": null,
-    "cap_duration_s": null
+    "cap_duration_s": 323
   }
 }

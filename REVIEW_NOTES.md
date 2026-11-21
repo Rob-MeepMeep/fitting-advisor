@@ -61,24 +61,28 @@ All `eos` and Pyfa `config` imports are isolated exclusively in `advisor/engine.
 
 ## 6. Golden Test Status
 
-All 10 golden fits exist in `tests/golden/*.eft` with matching `*.expected.json` stubs (`"status": "awaiting_user_values"`). No expected values were invented:
+All 10 golden fits in `tests/golden/*.eft` now have user-verified Pyfa `v2.70.0` GUI values in `tests/golden/*.expected.json` (10/10 passing, 0 skipped). No expected values were invented or modified:
 
-- `apocalypse_battleship.eft` — awaiting user Pyfa GUI values (skipped in `test_golden.py`; passes round-trip & validation).
-- `caracal_missiles.eft` — awaiting user Pyfa GUI values (skipped in `test_golden.py`; passes round-trip & validation).
-- `drake_shield.eft` — awaiting user Pyfa GUI values (skipped in `test_golden.py`; passes round-trip & validation).
-- `maller_armor.eft` — awaiting user Pyfa GUI values (skipped in `test_golden.py`; passes round-trip & validation).
-- `rifter_turrets.eft` — awaiting user Pyfa GUI values (skipped in `test_golden.py`; passes round-trip & validation; cap simulation verified unstable with active MWD + armor repper).
-- `tengu_t3c.eft` — awaiting user Pyfa GUI values (skipped in `test_golden.py`; passes round-trip & validation with 4 subsystems).
-- `thrasher_offline.eft` — awaiting user Pyfa GUI values (skipped in `test_golden.py`; passes round-trip & validation with `/OFFLINE` module).
-- `tristan_empty_slots.eft` — awaiting user Pyfa GUI values (skipped in `test_golden.py`; passes round-trip & validation with empty slots).
-- `vexor_drones.eft` — awaiting user Pyfa GUI values (skipped in `test_golden.py`; passes round-trip & validation).
-- `rifter_illegal.eft` — awaiting user Pyfa GUI values (skipped in `test_golden.py`; verified in `test_validate.py` to fail with `pg_exceeded`, `rig_size_mismatch`, `max_group_fitted_exceeded`, and `invalid_charge`).
+- **Drone activation difference on EFT import**: Desktop Pyfa leaves imported drones inactive (`0/5`) until the user launches them, whereas `advisor/engine.py` defaults to `activate_drones=True` so interactive/advisor evaluation reflects launched drone DPS. To compare directly against Pyfa's un-launched import state without discarding real drone DPS in the app, the 6 drone-bearing golden JSON files (`apocalypse_battleship`, `caracal_missiles`, `drake_shield`, `maller_armor`, `tristan_empty_slots`, `vexor_drones`) set `"drones_active": false` and `test_golden.py` passes `activate_drones=False` when present.
+- **Cap duration GUI truncation**: Pyfa's GUI (`gui/builtinStatsViews/capacitorViewFull.py:165-168`) truncates `fit.capState` to whole seconds (`%ds` / `%dm%ds`), so `test_golden.py` uses `abs_tol=1.0` specifically on `cap_duration_s` while keeping strict `0.5%` relative tolerance on all other fields.
+
+Verified golden fits:
+- `apocalypse_battleship.eft` — **verified** (All V, `drones_active: false`).
+- `caracal_missiles.eft` — **verified** (All V, `drones_active: false`).
+- `drake_shield.eft` — **verified** (All V, `drones_active: false`).
+- `maller_armor.eft` — **verified** (All V, `drones_active: false`).
+- `rifter_turrets.eft` — **verified** (All V, cap unstable `22.5s` / Pyfa `Lasts 22s`).
+- `tengu_t3c.eft` — **verified** (All V, 4 subsystems).
+- `thrasher_offline.eft` — **verified** (All V, `/OFFLINE` module).
+- `tristan_empty_slots.eft` — **verified** (All V, empty slots, `drones_active: false`).
+- `vexor_drones.eft` — **verified** (All V, `drones_active: false`).
+- `rifter_illegal.eft` — **verified** (`expected_valid: false`, failing with `cpu_exceeded`, `pg_exceeded`, `rig_size_mismatch`, `max_group_fitted_exceeded`, `invalid_charge`).
 
 ---
 
 ## 7. Known Limitations & Uncertainties
 
-- **Pyfa GUI cross-check pending**: Capacitor stability (`cap_stable` and `cap_duration_s`) behaves realistically on the Rifter MWD test fit (`cap_stable=False`, ~20s duration), and all 9 legal golden fits calculate cleanly, but exact numbers have not yet been compared side-by-side against the desktop Pyfa GUI (`tests/golden/*.expected.json` awaiting user values).
+- **Drone boat active-DPS GUI cross-check**: The 6 drone-bearing golden fits were verified against Pyfa's initial import state (`0/5` drones launched). Active-drone stats (`activate_drones=True`) have not yet been cross-checked against Pyfa with drones toggled active in the GUI.
 - **Live Gemini / LM Studio / ESI SSO**: Unit tests cover the advisor loop, tool-call cap, invalid-proposal rejection, and ESI PKCE/caching/error-limit logic via mocks/MockTransport without live network credentials. Live end-to-end verification against Gemini, LM Studio, and Tranquility ESI requires user credentials in `.env`.
 - **Variant grouping**: `get_module_variants` falls back to same-group + matching slot/rigSize/chargeSize/capital-size when `metaParent` links are absent; this can occasionally include related modules in the same group (e.g., 1MN Afterburner alongside 5MN Microwarpdrive, since both are in the Propulsion Module group).
 - **Citadels / Structures & T3D modes**: Basic ship and T3C subsystem support is implemented and tested; Upwell structures and Tactical Destroyer modes are not yet exposed in the UI or EFT parser.

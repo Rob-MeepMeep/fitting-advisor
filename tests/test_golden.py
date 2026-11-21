@@ -19,12 +19,12 @@ GOLDEN_EFTS = sorted(GOLDEN_DIR.glob("*.eft"))
 REL_TOL = 0.005  # 0.5% relative tolerance for Pyfa GUI rounding
 
 
-def _assert_close(actual: float, expected: float, label: str) -> None:
+def _assert_close(actual: float, expected: float, label: str, abs_tol: float = 0.0) -> None:
     if expected == 0:
-        assert abs(actual) <= 1e-3, f"{label}: expected 0, got {actual}"
+        assert abs(actual) <= max(1e-3, abs_tol), f"{label}: expected 0, got {actual}"
     else:
-        assert actual == pytest.approx(expected, rel=REL_TOL), (
-            f"{label}: actual={actual} vs expected={expected} (tol={REL_TOL:.1%})"
+        assert actual == pytest.approx(expected, rel=REL_TOL, abs=abs_tol), (
+            f"{label}: actual={actual} vs expected={expected} (tol={REL_TOL:.1%}, abs={abs_tol})"
         )
 
 
@@ -49,7 +49,8 @@ def test_golden_fit(eft_path: Path):
             )
         return
 
-    stats = engine.calculate(fit, skills)
+    activate_drones = bool(expected.get("drones_active", True))
+    stats = engine.calculate(fit, skills, activate_drones=activate_drones)
     exp = expected["stats"]
     for field in (
         "dps_total",
@@ -70,6 +71,7 @@ def test_golden_fit(eft_path: Path):
     if "cap_stable" in exp and exp["cap_stable"] is not None:
         assert stats.cap_stable is bool(exp["cap_stable"])
         if not stats.cap_stable and exp.get("cap_duration_s") is not None:
-            _assert_close(stats.cap_duration_s or 0.0, float(exp["cap_duration_s"]), "cap_duration_s")
+            # Pyfa GUI (capacitorViewFull.py:165-168) truncates fit.capState to integer seconds via %ds / %dm%ds
+            _assert_close(stats.cap_duration_s or 0.0, float(exp["cap_duration_s"]), "cap_duration_s", abs_tol=1.0)
         elif stats.cap_stable and exp.get("cap_stable_pct") is not None:
             _assert_close(stats.cap_stable_pct or 0.0, float(exp["cap_stable_pct"]), "cap_stable_pct")

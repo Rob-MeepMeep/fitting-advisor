@@ -266,7 +266,11 @@ def _state_to_str(state: Any) -> str:
     return "online"
 
 
-def _build_eos_fit(fit_spec: FitSpec, skills: SkillSet | None = None) -> tuple[Any, list[tuple[SlotType, ModuleSpec, Any]]]:
+def _build_eos_fit(
+    fit_spec: FitSpec,
+    skills: SkillSet | None = None,
+    activate_drones: bool = True,
+) -> tuple[Any, list[tuple[SlotType, ModuleSpec, Any]]]:
     """Construct an eos ``Fit`` from a ``FitSpec`` and run attribute calculation."""
     ship_item = _eos_db.getItem(fit_spec.ship)
     if ship_item is None:
@@ -339,7 +343,7 @@ def _build_eos_fit(fit_spec: FitSpec, skills: SkillSet | None = None) -> tuple[A
     fit.calculateModifiedAttributes()
 
     # Activate drones intelligently if any are present
-    if fit.drones:
+    if fit.drones and (activate_drones or any(d.active is not None for d in fit_spec.drones)):
         max_active_drones = int(fit.extraAttributes["maxActiveDrones"] or 0)
         bw_total = float(fit.ship.getModifiedItemAttr("droneBandwidth") or 0.0)
         active_used = 0
@@ -348,6 +352,8 @@ def _build_eos_fit(fit_spec: FitSpec, skills: SkillSet | None = None) -> tuple[A
             bw_each = float(drone.getModifiedItemAttr("droneBandwidthUsed") or 0.0)
             if drone_spec.active is not None:
                 count = min(drone_spec.active, drone_spec.quantity)
+            elif not activate_drones:
+                count = 0
             else:
                 remaining_slots = max(0, max_active_drones - active_used)
                 if bw_each > 0:
@@ -381,11 +387,15 @@ def _extract_resists(ship: Any, prefix: str) -> ResistProfile:
     )
 
 
-def calculate(fit_spec: FitSpec, skills: SkillSet | None = None) -> FitStats:
+def calculate(
+    fit_spec: FitSpec,
+    skills: SkillSet | None = None,
+    activate_drones: bool = True,
+) -> FitStats:
     """Calculate all ship fit statistics using Pyfa's eos engine."""
     init_engine()
     with _ENGINE_LOCK:
-        fit, built_modules = _build_eos_fit(fit_spec, skills)
+        fit, built_modules = _build_eos_fit(fit_spec, skills, activate_drones=activate_drones)
 
         # Explicitly run capacitor simulation after calculateModifiedAttributes()
         fit.simulateCap()
