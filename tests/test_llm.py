@@ -7,9 +7,9 @@ from pathlib import Path
 
 import httpx
 
-from advisor import eft, pricing, profiles, validate
+from advisor import eft, engine, pricing, profiles, validate
 from advisor.llm import advisor
-from advisor.llm.base import MockLLMProvider
+from advisor.llm.base import LLMMessage, LLMProvider, LLMResponse, MockLLMProvider, ToolDefinition
 from advisor.llm.gemini import GeminiProvider
 from advisor.llm.openai_compat import OpenAICompatProvider
 from advisor.models import SkillSet
@@ -324,3 +324,86 @@ def test_gemini_provider_batches_parallel_tool_responses_and_preserves_thought_s
 
     assert result.tool_calls_made == 2
     assert result.summary == "Parallel tool calls batched cleanly."
+
+
+def test_advisor_discards_disallowed_meta_group_and_banned_module_proposals():
+    """Legal, affordable LLM proposals violating meta-group or banned-module rules must be discarded."""
+    base_eft = (GOLDEN_DIR / "rifter_turrets.eft").read_text(encoding="utf-8")
+    fit_spec = eft.parse_eft(base_eft)
+
+    faction_gyro_eft = base_eft.replace(
+        "Counterbalanced Compact Gyrostabilizer",
+        "Republic Fleet Gyrostabilizer",
+    )
+    legal_cheap_eft = base_eft.replace(
+        "Golden Turret Frigate",
+        "Cheap FW Verified",
+    )
+
+    class _StaticProposalProvider(LLMProvider):
+        def __init__(self, proposals: list[dict[str, str]]):
+            self._proposals = proposals
+
+        def chat(
+            self,
+            messages: list[LLMMessage],
+            tools: list[ToolDefinition],
+            json_mode: bool = False,
+        ) -> LLMResponse:
+            return LLMResponse(
+                content=json.dumps(
+                    {
+                        "summary": "Proposed variants.",
+                        "recommendations": self._proposals,
+                    }
+                )
+            )
+
+    # Price every item in these fits well under 50M ISK so budget is NOT the reason for rejection
+    price_map: dict[int, float | None] = {}
+    for spec_to_price in (fit_spec, eft.parse_eft(faction_gyro_eft)):
+        ship_info = engine.get_item_info(spec_to_price.ship)
+        if ship_info:
+            price_map[ship_info.type_id] = 500_000.0
+        for _slot, mod in spec_to_price.iter_modules():
+            if not mod.empty and mod.name:
+                info = engine.get_item_info(mod.name)
+                if info:
+                    price_map[info.type_id] = 15_000_000.0 if info.name == "Republic Fleet Gyrostabilizer" else 500_000.0
+    price_provider = pricing.StaticPriceProvider(price_map)
+
+    # 1. cheap_fw must discard Faction gyro while accepting Tech I/Meta/Tech II fit with Faction ammo
+    cheap_fw = profiles.get_profile("cheap_fw")
+    res1 = advisor.advise_fit(
+        fit_spec=fit_spec,
+        profile=cheap_fw,
+        price_provider=price_provider,
+        provider=_StaticProposalProvider(
+            [
+                {"eft": faction_gyro_eft, "reasoning": "Faction gyro slip-through test"},
+                {"eft": legal_cheap_eft, "reasoning": "Legal Tech II + Faction ammo fit"},
+            ]
+        ),
+        skills=SkillSet(preset="all5"),
+        max_evaluations=5,
+    )
+    assert len(res1.recommendations) == 1
+    assert "Cheap FW Verified" in res1.recommendations[0].eft_text
+    assert len(res1.discarded_proposals) == 1
+    assert any("Republic Fleet Gyrostabilizer" in r and "Faction" in r for r in res1.discarded_proposals[0].reasons)
+
+    # 2. banned_modules must discard a fit containing the banned module
+    banned_profile = cheap_fw.model_copy(update={"banned_modules": ["Damage Control II"]})
+    res2 = advisor.advise_fit(
+        fit_spec=fit_spec,
+        profile=banned_profile,
+        price_provider=price_provider,
+        provider=_StaticProposalProvider(
+            [{"eft": legal_cheap_eft, "reasoning": "Contains banned Damage Control II"}]
+        ),
+        skills=SkillSet(preset="all5"),
+        max_evaluations=5,
+    )
+    assert len(res2.recommendations) == 0
+    assert len(res2.discarded_proposals) == 1
+    assert any("Damage Control II" in r and "Banned" in r for r in res2.discarded_proposals[0].reasons)

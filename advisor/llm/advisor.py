@@ -216,10 +216,13 @@ def advise_fit(
             val = validate.validate_fit(parsed, skills)
             if not val.valid:
                 return {"valid": False, "errors": [i.message for i in val.issues]}
+            profile_violations = profiles.validate_fit_against_profile(parsed, profile)
             stats = engine.calculate(parsed, skills)
             cost, _, unknown = pricing.estimate_fit_cost(parsed, price_provider)
             return {
                 "valid": True,
+                "profile_compliant": len(profile_violations) == 0,
+                "profile_violations": profile_violations,
                 "stats": stats.model_dump(exclude={"modules"}),
                 "total_cost_isk": cost,
                 "unknown_price_items": unknown,
@@ -304,6 +307,12 @@ def advise_fit(
             reasons = [i.message for i in val.issues]
             logger.warning("Discarding illegal LLM fit proposal (%s): %s", spec.name, reasons)
             discarded.append(DiscardedProposal(eft_text=raw_eft, reasons=reasons))
+            continue
+
+        prof_errors = profiles.validate_fit_against_profile(spec, profile)
+        if prof_errors:
+            logger.warning("Discarding profile-noncompliant LLM proposal (%s): %s", spec.name, prof_errors)
+            discarded.append(DiscardedProposal(eft_text=raw_eft, reasons=prof_errors))
             continue
 
         canonical_eft = eft.export_eft(spec)

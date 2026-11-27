@@ -583,7 +583,34 @@ def validate_fit_eos(fit_spec: FitSpec, skills: SkillSet | None = None) -> list[
                 drone = _Drone(drone_item)
                 drone.owner = fit
                 drone.amount = drone_spec.quantity
-                drone.amountActive = drone_spec.active or 0
+                if drone_spec.active is not None:
+                    if drone_spec.active < 0:
+                        issues.append(
+                            ValidationIssue(
+                                code="invalid_active_drones",
+                                message=(
+                                    f"Active count for '{drone_spec.name}' cannot be negative "
+                                    f"({drone_spec.active})"
+                                ),
+                                module_name=drone_spec.name,
+                            )
+                        )
+                        drone.amountActive = 0
+                    else:
+                        if drone_spec.active > drone_spec.quantity:
+                            issues.append(
+                                ValidationIssue(
+                                    code="active_drones_exceed_quantity",
+                                    message=(
+                                        f"Active count for '{drone_spec.name}' ({drone_spec.active}) "
+                                        f"exceeds carried quantity ({drone_spec.quantity})"
+                                    ),
+                                    module_name=drone_spec.name,
+                                )
+                            )
+                        drone.amountActive = drone_spec.active
+                else:
+                    drone.amountActive = 0
                 fit.drones.append(drone)
             except ValueError:
                 issues.append(
@@ -803,6 +830,27 @@ def validate_fit_eos(fit_spec: FitSpec, skills: SkillSet | None = None) -> list[
                 ValidationIssue(
                     code="drone_bay_exceeded",
                     message=f"Drone bay exceeded: {drone_bay_used:.1f} / {drone_bay_total:.1f} m3",
+                )
+            )
+
+        # Explicit drone bandwidth & active drone count
+        drone_bw_used = float(fit.droneBandwidthUsed or 0.0)
+        drone_bw_total = float(fit.ship.getModifiedItemAttr("droneBandwidth") or 0.0)
+        if fit.drones and drone_bw_used > drone_bw_total + eps:
+            issues.append(
+                ValidationIssue(
+                    code="drone_bandwidth_exceeded",
+                    message=f"Drone bandwidth exceeded: {drone_bw_used:.1f} / {drone_bw_total:.1f} Mbit/s",
+                )
+            )
+
+        active_drones_used = int(fit.activeDrones or 0)
+        max_active_drones = int(fit.extraAttributes["maxActiveDrones"] or 0)
+        if active_drones_used > max_active_drones:
+            issues.append(
+                ValidationIssue(
+                    code="active_drones_exceeded",
+                    message=f"Active drones exceeded: {active_drones_used} active, max {max_active_drones}",
                 )
             )
 

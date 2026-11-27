@@ -4,7 +4,22 @@ A running record of completed milestones, fixes, and upcoming work.
 
 ---
 
-## 2026-11-27 — Advisor, Variant Family & Profile Fixes
+## 2026-11-27 — Profile Enforcement, Drone Validation & Dependency Hygiene
+
+- **Profile enforcement on LLM proposals** (`advisor/profiles.py`, `advisor/llm/advisor.py`, `tests/test_llm.py`):
+  - Added `validate_fit_against_profile()` checking published status, `banned_modules`, and `allowed_meta_groups` across fitted modules/rigs and drones/fighters (while allowing faction/T2 charges and `Tech III` subsystems).
+  - Exposed `profile_compliant` and `profile_violations` in the `evaluate_fit` tool output and enforced profile compliance in the final proposal filter so disallowed meta-group or banned-module fits are discarded even when within budget.
+  - Added `test_advisor_discards_disallowed_meta_group_and_banned_module_proposals`.
+- **Explicit drone bandwidth & active-drone validation** (`advisor/engine.py`, `tests/test_validate.py`):
+  - Validated `DroneSpec.active` counts in `validate_fit_eos()` (`invalid_active_drones`, `active_drones_exceed_quantity`, `drone_bandwidth_exceeded`, and `active_drones_exceeded`).
+  - Added `test_explicit_drone_bandwidth_and_active_counts_validated` covering valid explicit active drones and all four failure cases.
+- **Dependency declaration** (`pyproject.toml`, `uv.lock`):
+  - Declared `platformdirs>=4.0.0,<5.0.0` in `[project].dependencies` and refreshed `uv.lock` offline without changing any pinned Pyfa dependency versions.
+- **Verification**: 64 tests passing (59 core/golden + 5 API) and 0 `ruff` errors.
+
+---
+
+## 2026-11-27 — Advisor, Variant Family & Profile Fixes (`de42abb`)
 
 - **Variation family matching** (`advisor/engine.py`): Switched `get_module_variants()` to use Pyfa's `varParent` / `varChildren` relationships instead of falling back to the whole item group, preventing cross-type/cross-size swaps (e.g. 10MN Afterburner ↔ MWD, or Large ↔ Small/Medium Shield Boosters).
 - **Gemini tool-calling fixes** (`advisor/llm/gemini.py`, `advisor/llm/base.py`, `advisor/llm/advisor.py`):
