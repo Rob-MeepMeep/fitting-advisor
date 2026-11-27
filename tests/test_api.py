@@ -4,12 +4,19 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 
+from advisor import pricing
 from advisor.api import app
 
 GOLDEN_DIR = Path(__file__).parent / "golden"
 client = TestClient(app)
+
+
+@pytest.fixture(autouse=True)
+def _isolate_price_cache(monkeypatch, tmp_path: Path):
+    monkeypatch.setattr(pricing, "DEFAULT_CACHE_PATH", tmp_path / "price_cache.json")
 
 
 def test_index_and_meta():

@@ -36,7 +36,7 @@ profiles:
       - Meta
       - Tech II
     # VERIFY: user to confirm against current game rules (typical cheap FW frigate/destroyer budget target)
-    budget_cap_isk: 25000000
+    budget_cap_isk: 50000000
     banned_modules: []
     weights:
       dps: 1.2
@@ -74,7 +74,7 @@ profiles:
       - Meta
       - Tech II
       - Faction
-    budget_cap_isk: 100000000
+    budget_cap_isk: 120000000
     banned_modules: []
     weights:
       dps: 1.2

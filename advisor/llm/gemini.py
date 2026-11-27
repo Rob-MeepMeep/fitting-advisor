@@ -50,26 +50,31 @@ class GeminiProvider(LLMProvider):
                 if msg.content:
                     parts.append({"text": msg.content})
                 for tc in msg.tool_calls:
-                    parts.append({"functionCall": {"name": tc.name, "args": tc.arguments}})
+                    part: dict[str, Any] = {"functionCall": {"name": tc.name, "args": tc.arguments}}
+                    if tc.thought_signature:
+                        part["thoughtSignature"] = tc.thought_signature
+                    parts.append(part)
                 contents.append({"role": "model", "parts": parts})
             elif msg.role == "tool":
                 try:
                     resp_obj = json.loads(msg.content)
                 except ValueError:
                     resp_obj = {"result": msg.content}
-                contents.append(
-                    {
-                        "role": "user",
-                        "parts": [
-                            {
-                                "functionResponse": {
-                                    "name": msg.tool_name or "tool",
-                                    "response": resp_obj if isinstance(resp_obj, dict) else {"result": resp_obj},
-                                }
-                            }
-                        ],
+                fr_part = {
+                    "functionResponse": {
+                        "name": msg.tool_name or "tool",
+                        "response": resp_obj if isinstance(resp_obj, dict) else {"result": resp_obj},
                     }
-                )
+                }
+                if (
+                    contents
+                    and contents[-1].get("role") == "user"
+                    and contents[-1].get("parts")
+                    and all("functionResponse" in p for p in contents[-1]["parts"])
+                ):
+                    contents[-1]["parts"].append(fr_part)
+                else:
+                    contents.append({"role": "user", "parts": [fr_part]})
 
         body: dict[str, Any] = {"contents": contents}
         if system_parts:
@@ -124,6 +129,7 @@ class GeminiProvider(LLMProvider):
                         id=f"gemini-tc-{idx}",
                         name=str(fc["name"]),
                         arguments=dict(fc.get("args") or {}),
+                        thought_signature=part.get("thoughtSignature"),
                     )
                 )
 

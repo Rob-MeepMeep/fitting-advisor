@@ -824,19 +824,18 @@ def get_module_variants(module_name: str) -> list[ItemInfo]:
         charge_size_val = charge_size.value if charge_size is not None else None
         is_cap = (item.attributes.get("volume").value or 0) >= 4000 if item.attributes.get("volume") else False
 
-        # Prefer eos meta-parent / variations if available, otherwise same group + matching size
+        # Prefer eos variation family (varParent / varChildren), otherwise same group + matching size
         candidates_by_id: dict[int, Any] = {}
 
-        parent = getattr(item, "metaParent", None)
-        base_item = parent if parent is not None else item
-        variations = getattr(base_item, "metaGroupItems", None) or getattr(base_item, "variations", None)
-        if variations:
+        base_item = getattr(item, "varParent", None) or item
+        var_children = list(getattr(base_item, "varChildren", None) or ())
+        if var_children or getattr(item, "varParent", None) is not None:
             candidates_by_id[base_item.ID] = base_item
-            for v in variations:
+            for v in var_children:
                 candidates_by_id[v.ID] = v
 
-        # Also include same-group items with matching slot & size (for rigs, or modules without parentTypeID links)
-        if not candidates_by_id or slot == _FittingSlot.RIG.value:
+        # Fall back to same-group items with matching slot & size only if no variation family exists
+        if not candidates_by_id:
             group = _eos_db.getGroup(item.groupID, eager="items.attributes")
             if group is not None:
                 for cand in group.items:

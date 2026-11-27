@@ -28,7 +28,7 @@ All `eos` and Pyfa `config` imports are isolated exclusively in `advisor/engine.
 | `advisor/engine.py` | 388–390 | `fit.simulateCap()` | Explicitly invokes the capacitor simulator after `fit.calculateModifiedAttributes()` so `fit.capStable` / `fit.capState` reflect a real simulation run. |
 | `advisor/engine.py` | 405–408, 619–622 | `fit.getSlotsUsed(slot_enum.value)` vs `fit.getNumSlots(slot_enum)` | In Pyfa `eos/saveddata/fit.py`, `getSlotsUsed` compares `mod.slot is type` where `mod.slot` is an `int` (`FittingSlot.*.value`), whereas `fit.slots` keys are `FittingSlot` enum members. |
 | `advisor/engine.py` | 640–736 | `fit.canFit(item)`, `mod.isCapitalSize`, `mod.isValidCharge(charge)`, `mod.getModifiedItemAttr("maxGroupOnline" / "maxGroupActive")`, `item.attributes.get("maxGroupFitted")` | Reuses Pyfa's own restriction checks while collecting ALL violations instead of stopping at the first. |
-| `advisor/engine.py` | 785–845 | `item.metaParent`, `item.metaGroupItems` / `item.variations`, `eos.db.getGroup(..., eager="items.attributes")`, `mod.getValidCharges()` | Discovers published-only module, rig, and charge variants. |
+| `advisor/engine.py` | 812–865 | `item.varParent`, `base_item.varChildren`, `eos.db.getGroup(..., eager="items.attributes")`, `mod.getValidCharges()` | Discovers published-only module, rig, and charge variants within their variation family (falling back to same group/size only if no variation family exists). |
 
 ---
 
@@ -84,5 +84,4 @@ Verified golden fits:
 
 - **Drone boat active-DPS GUI cross-check**: The 6 drone-bearing golden fits were verified against Pyfa's initial import state (`0/5` drones launched). Active-drone stats (`activate_drones=True`) have not yet been cross-checked against Pyfa with drones toggled active in the GUI.
 - **Live Gemini / LM Studio / ESI SSO**: Unit tests cover the advisor loop, tool-call cap, invalid-proposal rejection, and ESI PKCE/caching/error-limit logic via mocks/MockTransport without live network credentials. Live end-to-end verification against Gemini, LM Studio, and Tranquility ESI requires user credentials in `.env`.
-- **Variant grouping**: `get_module_variants` falls back to same-group + matching slot/rigSize/chargeSize/capital-size when `metaParent` links are absent; this can occasionally include related modules in the same group (e.g., 1MN Afterburner alongside 5MN Microwarpdrive, since both are in the Propulsion Module group).
 - **Citadels / Structures & T3D modes**: Basic ship and T3C subsystem support is implemented and tested; Upwell structures and Tactical Destroyer modes are not yet exposed in the UI or EFT parser.

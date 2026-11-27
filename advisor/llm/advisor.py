@@ -255,12 +255,11 @@ def advise_fit(
         resp = provider.chat(messages, tools=active_tools, json_mode=(not active_tools))
 
         if resp.tool_calls and remaining > 0:
+            calls_to_run = resp.tool_calls[:remaining]
             messages.append(
-                LLMMessage(role="assistant", content=resp.content, tool_calls=resp.tool_calls)
+                LLMMessage(role="assistant", content=resp.content, tool_calls=calls_to_run)
             )
-            for tc in resp.tool_calls:
-                if tool_calls_made >= max_tool_calls:
-                    break
+            for tc in calls_to_run:
                 tool_calls_made += 1
                 result = _run_tool(tc.name, tc.arguments)
                 messages.append(

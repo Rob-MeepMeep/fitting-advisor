@@ -58,13 +58,13 @@ class FuzzworkPriceProvider(PriceProvider):
 
     def __init__(
         self,
-        cache_path: Path = DEFAULT_CACHE_PATH,
+        cache_path: Path | None = None,
         ttl_seconds: int = DEFAULT_TTL_SECONDS,
         station_id: int = JITA_STATION_ID,
         timeout: float = 10.0,
         offline: bool = False,
     ):
-        self.cache_path = cache_path
+        self.cache_path = cache_path if cache_path is not None else DEFAULT_CACHE_PATH
         self.ttl_seconds = ttl_seconds
         self.station_id = station_id
         self.timeout = timeout

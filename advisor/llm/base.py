@@ -23,6 +23,7 @@ class ToolCall(BaseModel):
     id: str
     name: str
     arguments: dict[str, Any] = Field(default_factory=dict)
+    thought_signature: str | None = None
 
 
 class LLMMessage(BaseModel):

@@ -233,3 +233,94 @@ def test_openai_compat_provider_tool_call_and_json_response():
     assert result.summary == "OpenAI-compat verified summary."
     assert len(result.recommendations) == 1
     assert result.recommendations[0].stats.ship == "Rifter"
+
+
+def test_gemini_provider_batches_parallel_tool_responses_and_preserves_thought_signature():
+    """Parallel Gemini functionCalls must produce a single user turn with all functionResponses
+    and preserve thoughtSignature on the model turn."""
+    fit_spec = eft.parse_eft((GOLDEN_DIR / "rifter_turrets.eft").read_text(encoding="utf-8"))
+    canonical_eft = eft.export_eft(fit_spec)
+    requests_seen: list[dict] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        body = json.loads(request.content.decode("utf-8"))
+        requests_seen.append(body)
+        if len(requests_seen) == 1:
+            return httpx.Response(
+                200,
+                json={
+                    "candidates": [
+                        {
+                            "content": {
+                                "role": "model",
+                                "parts": [
+                                    {
+                                        "functionCall": {"name": "get_profile", "args": {"name": "bling"}},
+                                        "thoughtSignature": "sig-alpha",
+                                    },
+                                    {
+                                        "functionCall": {
+                                            "name": "list_variants",
+                                            "args": {"module_name": "Gyrostabilizer II", "profile": "bling"},
+                                        },
+                                        "thoughtSignature": "sig-beta",
+                                    },
+                                ],
+                            }
+                        }
+                    ]
+                },
+            )
+
+        # Contents must be: user (context) -> model (2 functionCalls w/ sigs) -> single user (2 functionResponses)
+        assert len(body["contents"]) == 3
+        model_parts = body["contents"][1]["parts"]
+        assert model_parts[0]["thoughtSignature"] == "sig-alpha"
+        assert model_parts[1]["thoughtSignature"] == "sig-beta"
+        fr_turn = body["contents"][2]
+        assert fr_turn["role"] == "user"
+        assert len(fr_turn["parts"]) == 2
+        assert [p["functionResponse"]["name"] for p in fr_turn["parts"]] == ["get_profile", "list_variants"]
+
+        return httpx.Response(
+            200,
+            json={
+                "candidates": [
+                    {
+                        "content": {
+                            "role": "model",
+                            "parts": [
+                                {
+                                    "text": json.dumps(
+                                        {
+                                            "summary": "Parallel tool calls batched cleanly.",
+                                            "recommendations": [
+                                                {
+                                                    "eft": canonical_eft,
+                                                    "reasoning": "Verified.",
+                                                }
+                                            ],
+                                        }
+                                    )
+                                }
+                            ],
+                        }
+                    }
+                ]
+            },
+        )
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    provider = GeminiProvider(api_key="test-key", model="gemini-2.5-flash", http_client=client)
+    result = advisor.advise_fit(
+        fit_spec=fit_spec,
+        profile=profiles.get_profile("bling"),
+        price_provider=pricing.StaticPriceProvider({}),
+        provider=provider,
+        skills=SkillSet(preset="all5"),
+        max_evaluations=5,
+        top_n_candidates=2,
+    )
+
+    assert result.tool_calls_made == 2
+    assert result.summary == "Parallel tool calls batched cleanly."

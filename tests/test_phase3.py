@@ -93,3 +93,15 @@ def test_generate_candidates_all_valid_and_bounded():
         val = validate.validate_fit(cand.fit_spec, SkillSet(preset="all5"))
         assert val.valid, f"Illegal candidate returned: {[i.message for i in val.issues]}"
         assert len(cand.changes) >= 1
+
+
+def test_module_variants_use_variation_family():
+    """Verify variation families keep AB/MWD and Small/Medium/Large boosters separate."""
+    ab_variants = [v.name for v in engine.get_module_variants("10MN Y-S8 Compact Afterburner")]
+    assert "10MN Afterburner II" in ab_variants
+    assert all("Microwarpdrive" not in n for n in ab_variants)
+    assert all("1MN" not in n for n in ab_variants)
+
+    sb_variants = [v.name for v in engine.get_module_variants("Large Shield Booster II")]
+    assert "Pith X-Type Large Shield Booster" in sb_variants
+    assert all("Small " not in n and "Medium " not in n for n in sb_variants)
